@@ -4,11 +4,6 @@ SERVO_CONFIG = {
     1: {"pin": 5, "min_duty": 26, "max_duty": 123}
 }
 
-# サーボの設定 (GPIO5を使用)
-SERVO_CONFIG = {
-    1: {"pin": 5, "min_duty": 26, "max_duty": 123}
-}
-
 # シナリオ間の待機時間 (ミリ秒)
 # 0 の場合は待ち時間なしで即座にループします
 LOOP_INTERVAL_MS = 2000  # 例：2秒待機
