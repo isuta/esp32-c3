@@ -1,0 +1,7 @@
+# QRコード生成用ライブラリ
+# generate_qr.py を実行する前にインストールしてください
+# 
+# インストールコマンド:
+#   pip install -r requirements.txt
+
+qrcode[pil]>=7.4.2

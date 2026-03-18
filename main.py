@@ -1,58 +1,50 @@
-import json
-import utime
-from servo_controller import ServoController
-from config import LOOP_INTERVAL_MS  # 設定をインポート
+# ============================
+# ZAKU Motion Control System
+# Main Entry Point
+# ============================
 
-def run_scenario(controller, scenario_data):
-    for step in scenario_data:
-        # 待機コマンド
-        if "wait_ms" in step:
-            utime.sleep_ms(step["wait_ms"])
-            continue
+import network
+import uasyncio as asyncio
+from config import AP_SSID, AP_PASSWORD, AP_IP
+from src.zaku_system import ZakuMotionSystem
+from src.web_server import start_server
 
-        # サーボ操作コマンド
-        if step.get("type") == "servo":
-            if step.get("command") == "set_angle":
-                controller.set_angle(
-                    step.get("servo_index"), 
-                    step.get("angle"), 
-                    step.get("duration_ms", 0)
-                )
+
+def start_wifi_ap():
+    """Wi-Fi Access Point起動"""
+    ap = network.WLAN(network.AP_IF)
+    ap.active(True)
+    ap.config(essid=AP_SSID, password=AP_PASSWORD)
+    ap.ifconfig((AP_IP, '255.255.255.0', AP_IP, AP_IP))
+    
+    print("=" * 40)
+    print("ZAKU Motion Control System")
+    print("=" * 40)
+    print(f"Wi-Fi AP: {AP_SSID}")
+    print(f"Password: {AP_PASSWORD}")
+    print(f"Access: http://{AP_IP}/")
+    print("=" * 40)
+    
+    return ap
+
 
 def main():
-    controller = ServoController()
+    """メインエントリーポイント"""
+    # Wi-Fi AP起動
+    start_wifi_ap()
     
-    # ファイル読み込み
+    # システム初期化
+    system = ZakuMotionSystem()
+    
+    # サーバー起動
     try:
-        with open("scenarios.json", "r") as f:
-            data = json.load(f)
-        
-        scenario_name = "servo_calibrate"
-        if scenario_name not in data:
-            print(f"Error: Scenario '{scenario_name}' not found.")
-            return
+        asyncio.run(start_server(system))
+    except KeyboardInterrupt:
+        print("\n[System] Shutting down...")
+        system.monoeye.off()
+        system.machinegun.off()
 
-        print(f"Starting loop for scenario: {scenario_name}")
-        
-        # --- 永久ループ開始 ---
-        while True:
-            # シナリオ実行
-            run_scenario(controller, data[scenario_name])
-            
-            # ループ間の待機処理
-            if LOOP_INTERVAL_MS > 0:
-                print(f"Loop finished. Waiting {LOOP_INTERVAL_MS}ms...")
-                utime.sleep_ms(LOOP_INTERVAL_MS)
-            else:
-                # 0の場合は表示なしで即ループ
-                pass
-
-    except Exception as e:
-        print(f"Error: {e}")
-    finally:
-        # Ctrl+C などで停止した場合にPWMを解放
-        controller.deinit()
-        print("Program stopped.")
 
 if __name__ == "__main__":
     main()
+

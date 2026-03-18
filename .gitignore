@@ -1,0 +1,27 @@
+# 設計書・仕様書（コミット対象外）
+ザク・モーション制御システム (ZAKU Motion Control Sy.md
+
+# 開発用タスク管理ファイル（コミット対象外）
+DEVELOPMENT.md
+
+# MicroPython
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDEの設定ファイル
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS生成ファイル
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 一時ファイル
+*.tmp
+*.bak
+*.swp
+*~
