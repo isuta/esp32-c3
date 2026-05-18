@@ -2,6 +2,7 @@
 # ZAKU Motion Control System Core
 # ============================
 
+import config
 import uasyncio as asyncio
 from src.dfplayer import DFPlayer
 from src.led_control import MonoeyeLED, MachinegunLED
@@ -32,9 +33,28 @@ class ZakuMotionSystem:
         
         # DFPlayer初期化
         asyncio.create_task(self.init_dfplayer())
+
+    def _play_sound(self, *, simple_track=None, folder_track=None, debug_message=None):
+        """サウンド再生（LED単体テスト時はスキップ）"""
+        if config.DEBUG_LED_ONLY:
+            if debug_message:
+                print(debug_message)
+            return False
+
+        if SOUND_MODE == "folder" and folder_track:
+            folder, track = folder_track
+            self.dfplayer.play_folder_track(folder, track)
+        elif simple_track is not None:
+            self.dfplayer.play_track(simple_track)
+
+        return True
     
     async def init_dfplayer(self):
         """DFPlayer初期化（起動待ちと音量設定）"""
+        if config.DEBUG_LED_ONLY:
+            print("[DEBUG] LED ONLY: DFPlayer初期化をスキップ")
+            return
+
         await asyncio.sleep(1)  # DFPlayer起動待ち
         self.dfplayer.set_volume(DFPLAYER_VOLUME)
         print("[DFPlayer] Initialized with volume:", DFPLAYER_VOLUME)
@@ -52,14 +72,14 @@ class ZakuMotionSystem:
             print("[MONOEYE] ON sequence started")
             
             # 起動音再生
-            if SOUND_MODE == "folder":
-                folder, track = SOUND_MONOEYE_ON_FOLDER
-                self.dfplayer.play_folder_track(folder, track)
-            else:
-                self.dfplayer.play_track(SOUND_MONOEYE_ON)
+            sound_started = self._play_sound(
+                simple_track=SOUND_MONOEYE_ON,
+                folder_track=SOUND_MONOEYE_ON_FOLDER,
+                debug_message="[DEBUG] LED ONLY: モノアイ起動音をスキップ"
+            )
             
             # 音源の先頭無音時間補正
-            if MONOEYE_AUDIO_OFFSET > 0:
+            if sound_started and MONOEYE_AUDIO_OFFSET > 0:
                 await asyncio.sleep_ms(MONOEYE_AUDIO_OFFSET)
             
             # フェードイン
@@ -83,7 +103,10 @@ class ZakuMotionSystem:
             self.monoeye.off()
             
             # サウンド停止
-            self.dfplayer.stop()
+            if config.DEBUG_LED_ONLY:
+                print("[DEBUG] LED ONLY: サウンド停止をスキップ")
+            else:
+                self.dfplayer.stop()
             
             # セッション終了
             self.session_active = False
@@ -105,20 +128,21 @@ class ZakuMotionSystem:
             print("[GUN] Press - burst fire started")
             
             # 連射音再生
-            if SOUND_MODE == "folder":
-                folder, track = SOUND_GUN_BURST_FOLDER
-                self.dfplayer.play_folder_track(folder, track)
-            else:
-                self.dfplayer.play_track(SOUND_GUN_BURST)
-            
-            # Busyピンが再生中になるまで待機
-            for _ in range(50):  # 最大500ms待機
-                if self.dfplayer.is_busy():
-                    break
-                await asyncio.sleep(0.01)
-            
+            sound_started = self._play_sound(
+                simple_track=SOUND_GUN_BURST,
+                folder_track=SOUND_GUN_BURST_FOLDER,
+                debug_message="[DEBUG] LED ONLY: マシンガン連射音とBusy監視をスキップ"
+            )
+
+            if sound_started:
+                # Busyピンが再生中になるまで待機
+                for _ in range(50):  # 最大500ms待機
+                    if self.dfplayer.is_busy():
+                        break
+                    await asyncio.sleep(0.01)
+
             # 音源ファイルの先頭無音部分の補正
-            if MACHINEGUN_BURST_AUDIO_OFFSET > 0:
+            if sound_started and MACHINEGUN_BURST_AUDIO_OFFSET > 0:
                 await asyncio.sleep_ms(MACHINEGUN_BURST_AUDIO_OFFSET)
             
             # LED点滅タスク開始
@@ -138,7 +162,7 @@ class ZakuMotionSystem:
     
     async def gun_blink_task(self):
         """マシンガンLED点滅タスク"""
-        while self.gun_firing or self.dfplayer.is_busy():
+        while self.gun_firing or (not config.DEBUG_LED_ONLY and self.dfplayer.is_busy()):
             self.machinegun.on()
             await asyncio.sleep_ms(MACHINEGUN_BLINK_INTERVAL // 2)
             self.machinegun.off()

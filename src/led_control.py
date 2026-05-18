@@ -4,6 +4,7 @@
 
 import uasyncio as asyncio
 from machine import Pin, PWM
+from config import MONOEYE_PWM_LOGICAL_MAX, MONOEYE_PWM_MAX_DUTY, MONOEYE_PWM_WRITE_METHOD
 
 
 class MonoeyeLED:
@@ -15,8 +16,22 @@ class MonoeyeLED:
             pin_num: GPIO ピン番号
             pwm_freq: PWM周波数 (デフォルト: 1000Hz)
         """
-        self.pwm = PWM(Pin(pin_num), freq=pwm_freq, duty=0)
+        self.pwm = PWM(Pin(pin_num))
+        self.pwm.freq(pwm_freq)
+        self._pwm_write = getattr(self.pwm, MONOEYE_PWM_WRITE_METHOD, None)
+        if self._pwm_write is None:
+            raise AttributeError(
+                "PWM write method '{}' is not supported on this board".format(MONOEYE_PWM_WRITE_METHOD)
+            )
         self.current_duty = 0
+        self._write_duty(0)
+
+    def _write_duty(self, logical_duty):
+        """論理Duty値(0-1023)をボード別PWM値へ変換して出力"""
+        logical_duty = max(0, min(MONOEYE_PWM_LOGICAL_MAX, int(logical_duty)))
+        self.current_duty = logical_duty
+        board_duty = (logical_duty * MONOEYE_PWM_MAX_DUTY) // MONOEYE_PWM_LOGICAL_MAX
+        self._pwm_write(board_duty)
         
     async def fade_in(self, duration):
         """
@@ -27,19 +42,17 @@ class MonoeyeLED:
         steps = 50
         step_delay = duration / steps
         for i in range(steps + 1):
-            self.current_duty = int((i / steps) * 1023)
-            self.pwm.duty(self.current_duty)
+            logical_duty = int((i / steps) * MONOEYE_PWM_LOGICAL_MAX)
+            self._write_duty(logical_duty)
             await asyncio.sleep(step_delay)
     
     def on(self):
         """即座に点灯"""
-        self.current_duty = 1023
-        self.pwm.duty(self.current_duty)
+        self._write_duty(MONOEYE_PWM_LOGICAL_MAX)
     
     def off(self):
         """消灯"""
-        self.current_duty = 0
-        self.pwm.duty(0)
+        self._write_duty(0)
 
 
 class MachinegunLED:

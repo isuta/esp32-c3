@@ -22,6 +22,10 @@ AP_IP = "192.168.4.1"
 if BOARD == "esp32":
     # モノアイLED (PWM対応ピン)
     PIN_MONOEYE = 25
+
+    # モノアイPWM設定 (ESP32)
+    MONOEYE_PWM_WRITE_METHOD = "duty"
+    MONOEYE_PWM_MAX_DUTY = 1023
     
     # マシンガンLED (デジタル出力)
     PIN_MACHINEGUN = 26
@@ -40,6 +44,10 @@ if BOARD == "esp32":
 elif BOARD == "pico2w":
     # モノアイLED (PWM対応ピン)
     PIN_MONOEYE = 15
+
+    # モノアイPWM設定 (Raspberry Pi Pico 2 W / RP2040系)
+    MONOEYE_PWM_WRITE_METHOD = "duty_u16"
+    MONOEYE_PWM_MAX_DUTY = 65535
     
     # マシンガンLED (デジタル出力)
     PIN_MACHINEGUN = 14
@@ -61,16 +69,25 @@ MONOEYE_FADE_DURATION = 2.0
 # モノアイPWM周波数
 MONOEYE_PWM_FREQ = 1000
 
+# モノアイLEDの内部フェード制御ステップ上限
+# 各ボードの実PWM値には MONOEYE_PWM_MAX_DUTY を使って自動変換される
+MONOEYE_PWM_LOGICAL_MAX = 1023
+
 # モノアイ音源の先頭無音時間補正（ミリ秒）
 # 音源ファイルの先頭に無音部分がある場合、その分フェードインを遅らせる
 MONOEYE_AUDIO_OFFSET = 0  # 0001.mp3: モノアイ起動音の先頭無音補正
+
+# LED単体テストモード
+# True : LEDのみ動作（音声再生・Busy監視・DFPlayer初期化/停止をスキップ）
+# False: 通常動作（LED + 音声同期）
+DEBUG_LED_ONLY = True
 
 # マシンガンLED点滅間隔（ミリ秒）
 MACHINEGUN_BLINK_INTERVAL = 100
 
 # マシンガン音源の先頭無音時間補正（ミリ秒）
 # 音源ファイルの先頭に無音部分がある場合、その分LEDの点滅を遅らせる
-MACHINEGUN_SINGLE_AUDIO_OFFSET = 0  # 0002.mp3: 単発音の先頭無音補正
+MACHINEGUN_SINGLE_AUDIO_OFFSET = 0  # 0002.mp3: 将来の単発演出用（現状未使用）
 MACHINEGUN_BURST_AUDIO_OFFSET = 0   # 0003.mp3: 連射音の先頭無音補正
 
 # セッション自動タイムアウト（秒、0で無効）
@@ -93,14 +110,14 @@ SOUND_MODE = "simple"  # "simple" または "folder"
 # === simple モード: ルート直下の連番ファイル ===
 # 音源ファイル番号 (SOUND_MODE = "simple" の場合に使用)
 SOUND_MONOEYE_ON = 1   # 0001.mp3: モノアイ起動音
-SOUND_GUN_SINGLE = 2   # 0002.mp3: マシンガン単発音
+SOUND_GUN_SINGLE = 2   # 0002.mp3: 将来の単発演出用（現状未使用）
 SOUND_GUN_BURST = 3    # 0003.mp3: マシンガン連射音
 
 # === folder モード: フォルダ/ファイル指定 ===
 # (folder, file) のタプル形式で指定 (SOUND_MODE = "folder" の場合に使用)
 # 例: (1, 1) = /01/001.mp3, (2, 5) = /02/005.mp3
 SOUND_MONOEYE_ON_FOLDER = (1, 1)   # /01/001.mp3: モノアイ起動音
-SOUND_GUN_SINGLE_FOLDER = (1, 2)   # /01/002.mp3: マシンガン単発音
+SOUND_GUN_SINGLE_FOLDER = (1, 2)   # /01/002.mp3: 将来の単発演出用（現状未使用）
 SOUND_GUN_BURST_FOLDER = (1, 3)    # /01/003.mp3: マシンガン連射音
 
 # ==================

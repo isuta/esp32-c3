@@ -8,21 +8,24 @@ import gc
 from config import WEBSOCKET_PORT
 
 
-async def handle_websocket(reader, writer, system):
+async def _read_exact(reader, size):
+    """指定サイズ分を確実に読み込む"""
+    data = bytearray()
+    while len(data) < size:
+        chunk = await reader.read(size - len(data))
+        if not chunk:
+            return None
+        data.extend(chunk)
+    return bytes(data)
+
+
+async def handle_websocket(reader, writer, system, headers):
     """WebSocket接続ハンドラ"""
     print("[WebSocket] Client connected")
     
     try:
-        # WebSocketハンドシェイク
-        request = await reader.read(1024)
-        request_str = request.decode('utf-8')
-        
         # Sec-WebSocket-Key抽出
-        key = None
-        for line in request_str.split('\r\n'):
-            if 'Sec-WebSocket-Key' in line:
-                key = line.split(': ')[1]
-                break
+        key = headers.get('Sec-WebSocket-Key')
         
         if key:
             # ハンドシェイク応答
@@ -44,7 +47,7 @@ async def handle_websocket(reader, writer, system):
             
             # メッセージ受信ループ
             while True:
-                frame_header = await reader.read(2)
+                frame_header = await _read_exact(reader, 2)
                 if not frame_header:
                     break
                 
@@ -52,17 +55,25 @@ async def handle_websocket(reader, writer, system):
                 payload_len = frame_header[1] & 0x7F
                 
                 if payload_len == 126:
-                    payload_len_bytes = await reader.read(2)
+                    payload_len_bytes = await _read_exact(reader, 2)
+                    if not payload_len_bytes:
+                        break
                     payload_len = struct.unpack('>H', payload_len_bytes)[0]
                 elif payload_len == 127:
-                    payload_len_bytes = await reader.read(8)
+                    payload_len_bytes = await _read_exact(reader, 8)
+                    if not payload_len_bytes:
+                        break
                     payload_len = struct.unpack('>Q', payload_len_bytes)[0]
                 
                 # マスクキー読み込み
-                mask = await reader.read(4)
+                mask = await _read_exact(reader, 4)
+                if not mask:
+                    break
                 
                 # ペイロード読み込み
-                masked_payload = await reader.read(payload_len)
+                masked_payload = await _read_exact(reader, payload_len)
+                if masked_payload is None:
+                    break
                 
                 # マスク解除
                 payload = bytearray(masked_payload)
@@ -83,6 +94,16 @@ async def handle_websocket(reader, writer, system):
                     asyncio.create_task(system.gun_release_sequence())
                 
                 gc.collect()
+        else:
+            response = (
+                'HTTP/1.1 400 Bad Request\r\n'
+                'Content-Type: text/plain\r\n'
+                'Connection: close\r\n'
+                '\r\n'
+                'Missing Sec-WebSocket-Key'
+            )
+            writer.write(response.encode())
+            await writer.drain()
     
     except Exception as e:
         print(f"[WebSocket] Error: {e}")
@@ -94,6 +115,8 @@ async def handle_websocket(reader, writer, system):
 
 async def handle_http(reader, writer, system):
     """HTTP リクエストハンドラ"""
+    upgraded_to_websocket = False
+
     try:
         request_line = await reader.readline()
         request_str = request_line.decode('utf-8')
@@ -111,7 +134,8 @@ async def handle_http(reader, writer, system):
         
         # WebSocketアップグレード判定
         if headers.get('Upgrade', '').lower() == 'websocket':
-            await handle_websocket(reader, writer, system)
+            upgraded_to_websocket = True
+            await handle_websocket(reader, writer, system, headers)
             return
         
         # 通常のHTTPリクエスト
@@ -153,8 +177,9 @@ async def handle_http(reader, writer, system):
     except Exception as e:
         print(f"[HTTP] Error: {e}")
     finally:
-        writer.close()
-        await writer.wait_closed()
+        if not upgraded_to_websocket:
+            writer.close()
+            await writer.wait_closed()
 
 
 async def start_server(system):
