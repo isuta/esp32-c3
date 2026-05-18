@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ZAKU SYSTEM INSTRUCTION CARD - SIEG ZEON</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+        
+        body {
+            background-color: #f3f4f6;
+            font-family: 'Share Tech Mono', 'Hiragino Sans', 'Meiryo', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .card-container {
+            width: 400px;
+            height: 570px;
+            background-color: #0d1a0d;
+            color: #33ff33;
+            border: 8px solid #1a2e1a;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card-container::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(51, 255, 51, 0.03) 0px,
+                rgba(51, 255, 51, 0.03) 1px,
+                transparent 1px,
+                transparent 2px
+            );
+            pointer-events: none;
+        }
+
+        .header {
+            border-bottom: 2px solid #33ff33;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .qr-section {
+            background-color: white;
+            padding: 10px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .info-box {
+            border: 1px solid #33ff33;
+            padding: 8px;
+            background: rgba(51, 255, 51, 0.05);
+        }
+
+        .step-number {
+            background: #33ff33;
+            color: #0d1a0d;
+            padding: 1px 6px;
+            font-weight: bold;
+            margin-right: 8px;
+            font-size: 12px;
+        }
+
+        .speech-bubble {
+            border-left: 3px solid #33ff33;
+            padding-left: 10px;
+            margin: 15px 0;
+            font-size: 13px;
+            color: #33ff33;
+            line-height: 1.4;
+            font-style: italic;
+        }
+
+        .footer-logo {
+            position: absolute;
+            bottom: 10px;
+            right: 20px;
+            opacity: 0.6;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card-container">
+        <div class="header">
+            <h1 class="text-2xl font-bold tracking-[0.2em]">SIEG ZEON!</h1>
+            <p class="text-[9px] opacity-70">PRINCIPALITY OF ZEON MOBILE SUIT UNIT</p>
+        </div>
+
+        <div class="speech-bubble">
+            「立てよ国民！ 我らジオン公国国民こそ選ばれた優良種族であることを忘れるな！」
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <!-- Step 1: Wi-Fi Connect QR -->
+            <section>
+                <div class="flex items-center mb-2">
+                    <span class="step-number">01</span>
+                    <h2 class="text-[10px] font-bold uppercase">Wi-Fi Login</h2>
+                </div>
+                <div class="qr-section mb-2">
+                    <div id="wifi_qr"></div>
+                </div>
+                <div class="info-box text-[9px]">
+                    <p>SSID: ZAKU-COCKPIT</p>
+                </div>
+            </section>
+
+            <!-- Step 2: System Launch QR -->
+            <section>
+                <div class="flex items-center mb-2">
+                    <span class="step-number">02</span>
+                    <h2 class="text-[10px] font-bold uppercase">Cockpit ON</h2>
+                </div>
+                <div class="qr-section mb-2">
+                    <div id="url_qr"></div>
+                </div>
+                <div class="info-box text-[9px]">
+                    <p>URL: http://192.168.4.1</p>
+                </div>
+            </section>
+        </div>
+
+        <div class="mt-6 text-center">
+            <p class="text-[11px] leading-snug font-bold">
+                諸君のスマートフォンをコックピットへ。
+            </p>
+            <p class="text-[9px] mt-1 opacity-80">
+                ※Wi-Fi接続後、右側のコードをスキャンせよ。
+            </p>
+        </div>
+
+        <div class="footer-logo">
+            GHREN ZABI OFFICIAL COMMAND / U.C.0079
+        </div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            // Wi-Fi接続用QR (WPA/WPA2フォーマット)
+            new QRCode(document.getElementById("wifi_qr"), {
+                text: "WIFI:S:ZAKU-COCKPIT;T:WPA;P:zaku0079;;",
+                width: 120,
+                height: 120,
+                colorDark : "#0d1a0d",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.M
+            });
+
+            // システムアクセスURL用QR
+            new QRCode(document.getElementById("url_qr"), {
+                text: "http://192.168.4.1",
+                width: 120,
+                height: 120,
+                colorDark : "#0d1a0d",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.M
+            });
+        };
+    </script>
+</body>
+</html>
